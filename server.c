@@ -12,12 +12,18 @@
 #define MAX_REQ_LEN 1000
 #define FBLOCK_SIZE 4000
 
+// Responses
 #define COD_OK0_GET         "OK-0 method GET OK\n"
 #define COD_OK1_FILE         "OK-1 File open OK\n"
 #define COD_ERROR_0_METHOD  "ERROR-0 Method not supported\n"
 #define COD_ERROR_1_FILE "ERROR-1 File could not be open\n"
 
+// Allowed Methods
 #define REQ_GET "GET"
+#define REQ_CREATE "CREATE"
+#define REQ_REMOVE "REMOVE"
+#define REQ_APPEND "APPEND"
+
 
 struct req_t {
     char method[128];
@@ -30,7 +36,7 @@ void get_request(req_t * resquest, char *rstr){
     sscanf(rstr, "%s %s", resquest->method, resquest->filename);
 }
 
-void send_file(int sockfd, req_t request){
+void send_response_file(int sockfd, req_t request){
     int fd, nr;
     unsigned char fbuff[FBLOCK_SIZE];
     fd = open(request.filename, O_RDONLY, S_IRUSR);
@@ -52,14 +58,21 @@ void send_file(int sockfd, req_t request){
     
 }
 
-void proc_request( int sockfd, req_t request){
-    if (strcmp(request.method, REQ_GET) == 0){
-        send(sockfd, COD_OK0_GET, strlen(COD_OK0_GET), 0);
-        send_file(sockfd, request);
-    }
-    else{
-        send(sockfd, COD_ERROR_0_METHOD, strlen(COD_ERROR_0_METHOD), 0);
-    }
+void proc_get_request(int sockfd, req_t request){
+    send(sockfd, COD_OK0_GET, strlen(COD_OK0_GET), 0);
+    send_response_file(sockfd, request);
+}
+
+void proc_create_request(int sockfd, req_t request){
+
+}
+
+void proc_remove_request(int sockfd, req_t request){
+
+}
+
+void proc_append_request(){
+
 }
 
 int main(int argc, char const *argv[])
@@ -109,7 +122,21 @@ int main(int argc, char const *argv[])
         if(nr > 0){
             get_request(&req, resquest);
             printf("method: %s\nfilename: %s\n", req.method, req.filename);
-            proc_request(sc, req);
+            if (strcmp(req.method, REQ_GET) == 0) {
+                proc_get_request(sc, req);
+            }
+            else if (strcmp(req.method, REQ_CREATE) == 0) {
+                proc_create_request(sc, req);
+            }
+            else if (strcmp(req.method, REQ_REMOVE) == 0) {
+                proc_remove_request(sc, req);
+            }
+            else if (strcmp(req.method, REQ_APPEND) == 0) {
+                proc_append_request();
+            }
+            else {
+                send(sc, COD_ERROR_0_METHOD, strlen(COD_ERROR_0_METHOD), 0);
+            }
         }
         //send
         close(sc);
