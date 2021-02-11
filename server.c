@@ -14,10 +14,13 @@
 
 // Responses
 #define COD_OK0_GET         "OK-0 method GET OK\n"
+#define COD_OK0_CREATE      "OK-0 method CREATE OK\n"
+#define COD_OK0_REMOVE      "OK-0 method REMOVE OK\n"
 #define COD_OK1_FILE         "OK-1 File open OK\n"
 #define COD_ERROR_0_METHOD  "ERROR-0 Method not supported\n"
 #define COD_ERROR_1_FILE "ERROR-1 File could not be open\n"
 #define COD_ERROR_2_NOT_FOUND "ERROR-2 File could not be found\n"
+#define COD_ERROR_3_FILE_EXISTS "ERROR-3 File already exists\n"
 
 // Allowed Methods
 #define REQ_GET "GET"
@@ -65,15 +68,23 @@ void proc_get_request(int sockfd, req_t request){
 }
 
 void proc_create_request(int sockfd, req_t request){
-
+    if (access(request.filename, F_OK) != 0) {
+        fopen(request.filename, "w");
+        send(sockfd, COD_OK0_CREATE, strlen(COD_OK0_CREATE), 0);
+    }
+    else {
+        perror("create file already exists");
+        send(sockfd, COD_ERROR_3_FILE_EXISTS, strlen(COD_ERROR_3_FILE_EXISTS), 0);
+    }
 }
 
 void proc_remove_request(int sockfd, req_t request){
     if (access(request.filename, F_OK) == 0) {
         remove(request.filename);
+        send(sockfd, COD_OK0_REMOVE, strlen(COD_OK0_REMOVE), 0);
     }
     else {
-        perror("create not found");
+        perror("remove file not found");
         send(sockfd, COD_ERROR_2_NOT_FOUND, strlen(COD_ERROR_2_NOT_FOUND), 0);
     }
 }
