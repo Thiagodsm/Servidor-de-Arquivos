@@ -152,7 +152,11 @@ int main(int argc, char const *argv[]) {
             continue;
         }
 
+<<<<<<< HEAD
         printf("Connected to client %s:%d\n", inet_ntoa(caddr.sin_addr), ntohs(caddr.sin_port));
+=======
+        printf("Conectado com o cliente %s:%d\n", inet_ntoa(caddr.sin_addr), ntohs(caddr.sin_port));
+>>>>>>> b79915797474586c822713cbe0dfc282862beb8a
 
         bzero(request, MAX_REQ_LEN);
         nr = recv(sc, request, MAX_REQ_LEN, 0);
