@@ -16,6 +16,7 @@
 #define COD_OK0_GET         "OK-0 method GET OK\n"
 #define COD_OK0_CREATE      "OK-0 method CREATE OK\n"
 #define COD_OK0_REMOVE      "OK-0 method REMOVE OK\n"
+#define COD_OK0_APPEND      "OK-0 method APPEND OK\n"
 #define COD_OK1_FILE         "OK-1 File open OK\n"
 #define COD_ERROR_0_METHOD  "ERROR-0 Method not supported\n"
 #define COD_ERROR_1_FILE "ERROR-1 File could not be open\n"
@@ -32,12 +33,23 @@
 struct req_t {
     char method[128];
     char filename[256];
+    char content[256];
 };
 typedef struct req_t req_t;
 
-void get_request(req_t * resquest, char *rstr){
-    bzero(resquest, sizeof(req_t));
-    sscanf(rstr, "%s %s", resquest->method, resquest->filename);
+void get_request(req_t * request, char *rstr){
+    bzero(request, sizeof(req_t));
+    char copy_str[MAX_REQ_LEN];
+    strcpy(copy_str, rstr);
+    char *token = strtok(copy_str, " ");
+    printf("TOKEN: %s\n", token);
+    if (strcmp(token, REQ_APPEND) == 0) {
+        sscanf(rstr, "%s \"%[^\"]%*c %s", request->method, request->content, request->filename);
+        //printf("METHOD: %s, CONTENT: %s, FILENAME: %s\n", request->method, request->content, request->filename);
+    }
+    else {
+        sscanf(rstr, "%s %s", request->method, request->filename);
+    }
 }
 
 void send_response_file(int sockfd, req_t request){
@@ -89,8 +101,17 @@ void proc_remove_request(int sockfd, req_t request){
     }
 }
 
-void proc_append_request(){
-
+void proc_append_request(int sockfd, req_t request){
+    if (access(request.filename, F_OK) == 0) {
+        FILE *f = fopen(request.filename, "a");
+        fputs(request.content, f);
+        fclose(f);
+        send(sockfd, COD_OK0_APPEND, strlen(COD_OK0_APPEND), 0);
+    }
+    else {
+        perror("append file not found");
+        send(sockfd, COD_ERROR_2_NOT_FOUND, strlen(COD_ERROR_2_NOT_FOUND), 0);
+    }
 }
 
 int main(int argc, char const *argv[])
@@ -122,7 +143,7 @@ int main(int argc, char const *argv[])
     struct sockaddr_in caddr;
     int addr_len;
     int sc, nr; // socket cliente
-    char resquest[MAX_REQ_LEN];
+    char request[MAX_REQ_LEN];
     req_t req;
 
     while (1){
@@ -135,10 +156,10 @@ int main(int argc, char const *argv[])
 
         printf("Conectado com o cliente %s:%d\n", inet_ntoa(caddr.sin_addr), ntohs(caddr.sin_port));
 
-        bzero(resquest, MAX_REQ_LEN);
-        nr = recv(sc, resquest, MAX_REQ_LEN, 0);
+        bzero(request, MAX_REQ_LEN);
+        nr = recv(sc, request, MAX_REQ_LEN, 0);
         if(nr > 0){
-            get_request(&req, resquest);
+            get_request(&req, request);
             printf("method: %s\nfilename: %s\n", req.method, req.filename);
             if (strcmp(req.method, REQ_GET) == 0) {
                 proc_get_request(sc, req);
@@ -150,7 +171,7 @@ int main(int argc, char const *argv[])
                 proc_remove_request(sc, req);
             }
             else if (strcmp(req.method, REQ_APPEND) == 0) {
-                proc_append_request();
+                proc_append_request(sc, req);
             }
             else {
                 send(sc, COD_ERROR_0_METHOD, strlen(COD_ERROR_0_METHOD), 0);
