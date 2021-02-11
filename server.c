@@ -17,6 +17,7 @@
 #define COD_OK1_FILE         "OK-1 File open OK\n"
 #define COD_ERROR_0_METHOD  "ERROR-0 Method not supported\n"
 #define COD_ERROR_1_FILE "ERROR-1 File could not be open\n"
+#define COD_ERROR_2_NOT_FOUND "ERROR-2 File could not be found\n"
 
 // Allowed Methods
 #define REQ_GET "GET"
@@ -68,7 +69,13 @@ void proc_create_request(int sockfd, req_t request){
 }
 
 void proc_remove_request(int sockfd, req_t request){
-
+    if (access(request.filename, F_OK) == 0) {
+        remove(request.filename);
+    }
+    else {
+        perror("create not found");
+        send(sockfd, COD_ERROR_2_NOT_FOUND, strlen(COD_ERROR_2_NOT_FOUND), 0);
+    }
 }
 
 void proc_append_request(){
