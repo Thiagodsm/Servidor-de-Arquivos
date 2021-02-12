@@ -80,7 +80,8 @@ void proc_get_request(int sockfd, req_t request){
 
 void proc_create_request(int sockfd, req_t request){
     if (access(request.filename, F_OK) != 0) {
-        fopen(request.filename, "w");
+        FILE *f = fopen(request.filename, "w");
+        fclose(f);
         send(sockfd, COD_OK0_CREATE, strlen(COD_OK0_CREATE), 0);
     }
     else {
